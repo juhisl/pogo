@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head><title>POGO Maxdex count</title></head>
+  <body>
+    <div id="updated"></div>
+    <div id="maxdex">Loading...</div>
+
+    <script type="module">
+      try {
+        const resp = await fetch('https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:html&sheet=Pokedex&range=AE24')
+        document.getElementById("maxdex").innerHTML = await resp.text()
+        const resp2 = await fetch('https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Pokedex&range=AR1')
+        const updated = await resp2.text()
+        document.getElementById("updated").innerHTML = `Last updated: ${updated.replace(/(^"|"$)/g, '')}`
+      } catch (e) {
+        document.getElementById("maxdex").innerText = "Error: " + e
+      }
+    </script>
+  </body>
+</html>
+
