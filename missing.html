@@ -5,8 +5,10 @@
     <div id="updated"></div>
     <h3>Missing shinies:</h3>
     <div id="shiny">Loading...</div>
+    <button onclick="copyText('shiny')">Copy</button>
     <h3>Missing luckies:</h3>
     <div id="lucky">Loading...</div>
+    <button onclick="copyText('lucky')">Copy</button>
 
     <script type="module">
       try {
@@ -23,6 +25,10 @@
         document.getElementById("updated").innerHTML = `Last updated: ${updated.replace(/(^"|"$)/g, '')}`
       } catch (e) {
         document.getElementById("updated").innerHTML = "Error: " + e
+      }
+
+      async function copyText(id) {
+        await navigator.clipboard.writeText(document.getElementById(id).innerText)
       }
     </script>
   </body>
