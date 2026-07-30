@@ -5,13 +5,16 @@
     <div id="updated"></div>
     <h3>Missing shinies:</h3>
     <div id="shiny">Loading...</div>
-    <button onclick="copyText('shiny')">Copy</button>
+    <button id="copyShiny">Copy</button>
     <h3>Missing luckies:</h3>
     <div id="lucky">Loading...</div>
-    <button onclick="copyText('lucky')">Copy</button>
+    <button id="copyLucky">Copy</button>
 
     <script type="module">
       try {
+        document.getElementById("copyShiny").addEventListener("click", () => navigator.clipboard.writeText(document.getElementById('shiny').innerText))
+        document.getElementById("copyLucky").addEventListener("click", () => navigator.clipboard.writeText(document.getElementById('lucky').innerText))
+
         const shinyResp = await fetch('https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Missing%20Shiny&range=F1')
         const shiny = await shinyResp.text()
         document.getElementById("shiny").innerHTML = shiny.replace(/(^"|"$)/g, '')
@@ -25,10 +28,6 @@
         document.getElementById("updated").innerHTML = `Last updated: ${updated.replace(/(^"|"$)/g, '')}`
       } catch (e) {
         document.getElementById("updated").innerHTML = "Error: " + e
-      }
-
-      async function copyText(id) {
-        await navigator.clipboard.writeText(document.getElementById(id).innerText)
       }
     </script>
   </body>
