@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head><title>POGO Maxdex count</title></head>
+  <head><title>Search strings for missing / JuhisL</title></head>
   <body>
     <div id="updated"></div>
     <h3>Missing shinies:</h3>
@@ -11,15 +11,18 @@
     <script type="module">
       try {
         const shinyResp = await fetch('https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Missing%20Shiny&range=F1')
-        document.getElementById("shiny").innerHTML = await shinyResp.text().replace(/(^"|"$)/g, '')
+        const shiny = await shinyResp.text()
+        document.getElementById("shiny").innerHTML = shiny.replace(/(^"|"$)/g, '')
 
         const luckyResp = await fetch('https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Missing%20Lucky&range=F1')
-        document.getElementById("shiny").innerHTML = await luckyResp.text().replace(/(^"|"$)/g, '')
+        const lucky = await luckyResp.text()
+        document.getElementById("lucky").innerHTML = lucky.replace(/(^"|"$)/g, '')
 
         const updatedResp = await fetch('https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Pokedex&range=AR1')
-        document.getElementById("updated").innerHTML = `Last updated: ${await updatedResp.text().replace(/(^"|"$)/g, '')}`
+        const updated = await updatedResp.text()
+        document.getElementById("updated").innerHTML = `Last updated: ${updated.replace(/(^"|"$)/g, '')}`
       } catch (e) {
-        document.getElementById("maxdex").innerText = "Error: " + e
+        document.getElementById("updated").innerHTML = "Error: " + e
       }
     </script>
   </body>
