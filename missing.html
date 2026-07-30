@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head><title>POGO Maxdex count</title></head>
+  <body>
+    <div id="updated"></div>
+    <h3>Missing shinies:</h3>
+    <div id="shiny">Loading...</div>
+    <h3>Missing luckies:</h3>
+    <div id="lucky">Loading...</div>
+
+    <script type="module">
+      try {
+        const shinyResp = await fetch('https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Missing%20Shiny&range=F1')
+        document.getElementById("shiny").innerHTML = await shinyResp.text().replace(/(^"|"$)/g, '')
+
+        const luckyResp = await fetch('https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Missing%20Lucky&range=F1')
+        document.getElementById("shiny").innerHTML = await luckyResp.text().replace(/(^"|"$)/g, '')
+
+        const updatedResp = await fetch('https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Pokedex&range=AR1')
+        document.getElementById("updated").innerHTML = `Last updated: ${await updatedResp.text().replace(/(^"|"$)/g, '')}`
+      } catch (e) {
+        document.getElementById("maxdex").innerText = "Error: " + e
+      }
+    </script>
+  </body>
+</html>
