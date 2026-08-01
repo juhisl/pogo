@@ -1,14 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head><title>Search strings for missing / JuhisL</title></head>
+  <head>
+    <title>Search strings for missing / JuhisL</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+  </head>
   <body>
-    <div id="updated"></div>
-    <h3>Missing shinies:</h3>
-    <div id="shiny">Loading...</div>
-    <button id="copyShiny">Copy</button>
-    <h3>Missing luckies:</h3>
-    <div id="lucky">Loading...</div>
-    <button id="copyLucky">Copy</button>
+    <div class="container">
+        <div id="updated" class="updated"></div>
+
+        <div class="card">
+            <h3>Missing shinies</h3>
+            <div id="shiny" class="content">Loading...</div>
+            <button id="copyShiny" class="copy-btn" onclick="copyText('shiny')">Copy</button>
+        </div>
+
+        <div class="card">
+            <h3>Missing luckies</h3>
+            <div id="lucky" class="content">Loading...</div>
+            <button id="copyLucky" class="copy-btn" onclick="copyText('lucky')">Copy</button>
+        </div>
+    </div>
 
     <script type="module">
       try {
