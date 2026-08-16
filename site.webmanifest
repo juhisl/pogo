@@ -1,8 +1,8 @@
 {
   "name": "POGO",
   "short_name": "POGO",
-  "id": "./",
-  "start_url": "./",
+  "id": "./missing.html",
+  "start_url": "./missing.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",

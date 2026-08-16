@@ -28,6 +28,9 @@ test('site.webmanifest defines high-resolution Master Ball icons', async () => {
   const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'))
 
   assert.equal(manifest.name, 'POGO')
+  assert.equal(manifest.id, './missing.html')
+  assert.equal(manifest.start_url, './missing.html')
+  assert.equal(manifest.scope, './')
   assert.ok(Array.isArray(manifest.icons))
   assert.deepEqual(
     manifest.icons.map((icon) => ({
