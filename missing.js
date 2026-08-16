@@ -1,4 +1,6 @@
 const sheetBaseUrl = 'https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv'
+const copyPopupMessage = 'Search string copied to the clipboard'
+const copyPopupTimers = new Map()
 
 export function buildSheetUrl(sheetName, range) {
   return `${sheetBaseUrl}&sheet=${sheetName}&range=${range}`
@@ -23,8 +25,30 @@ export async function fetchSheetValue(url, fetchImpl = fetch) {
   return stripCsvQuotes(await response.text())
 }
 
-export function bindCopyButton(buttonId, contentId, doc = document, clipboard = navigator.clipboard) {
-  doc.getElementById(buttonId).addEventListener("click", () => clipboard.writeText(doc.getElementById(contentId).innerText))
+export function showCopyPopup(popupId, doc = document, schedule = setTimeout, cancel = clearTimeout) {
+  const popup = doc.getElementById(popupId)
+  const previousTimeoutId = copyPopupTimers.get(popupId)
+
+  if (previousTimeoutId) {
+    cancel(previousTimeoutId)
+  }
+
+  popup.textContent = copyPopupMessage
+  popup.hidden = false
+
+  const timeoutId = schedule(() => {
+    popup.hidden = true
+    copyPopupTimers.delete(popupId)
+  }, 1600)
+
+  copyPopupTimers.set(popupId, timeoutId)
+}
+
+export function bindCopyButton(buttonId, contentId, popupId, doc = document, clipboard = navigator.clipboard, schedule = setTimeout, cancel = clearTimeout) {
+  doc.getElementById(buttonId).addEventListener("click", async () => {
+    await clipboard.writeText(doc.getElementById(contentId).innerText)
+    showCopyPopup(popupId, doc, schedule, cancel)
+  })
 }
 
 async function populateContent(elementId, url, suffix = '', doc = document, fetchImpl = fetch) {
@@ -32,17 +56,17 @@ async function populateContent(elementId, url, suffix = '', doc = document, fetc
   doc.getElementById(elementId).innerHTML = `${value}${suffix}`
 }
 
-export function initMissingPage({ doc = document, fetchImpl = fetch, clipboard = navigator.clipboard } = {}) {
+export function initMissingPage({ doc = document, fetchImpl = fetch, clipboard = navigator.clipboard, schedule = setTimeout, cancel = clearTimeout } = {}) {
   if (initPromise) {
     return initPromise
   }
 
   initPromise = (async () => {
     try {
-      bindCopyButton("copyShiny", "shiny", doc, clipboard)
-      bindCopyButton("copyLucky", "lucky", doc, clipboard)
-      bindCopyButton("copyXxl", "xxl", doc, clipboard)
-      bindCopyButton("copyXxs", "xxs", doc, clipboard)
+      bindCopyButton("copyShiny", "shiny", "copyShinyPopup", doc, clipboard, schedule, cancel)
+      bindCopyButton("copyLucky", "lucky", "copyLuckyPopup", doc, clipboard, schedule, cancel)
+      bindCopyButton("copyXxl", "xxl", "copyXxlPopup", doc, clipboard, schedule, cancel)
+      bindCopyButton("copyXxs", "xxs", "copyXxsPopup", doc, clipboard, schedule, cancel)
 
       await populateContent("shiny", sheetUrls.shiny, "&shiny&!traded", doc, fetchImpl)
       await populateContent("lucky", sheetUrls.lucky, "&!traded", doc, fetchImpl)

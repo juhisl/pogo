@@ -46,23 +46,51 @@ body {
     word-break: break-word;
 }
 
+.copy-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
 .copy-btn {
-    padding: 10px 18px;
+    min-height: 52px;
+    padding: 14px 22px;
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
     background: #1976d2;
     color: white;
-    font-size: 0.95rem;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1;
     cursor: pointer;
-    transition: background 0.2s ease;
+    box-shadow: 0 10px 18px rgba(25, 118, 210, 0.22);
+    transition: transform 0.12s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .copy-btn:hover {
     background: #1565c0;
+    box-shadow: 0 12px 22px rgba(21, 101, 192, 0.28);
 }
 
 .copy-btn:active {
-    transform: scale(0.98);
+    transform: translateY(2px) scale(0.97);
+    box-shadow: 0 4px 10px rgba(21, 101, 192, 0.28);
+}
+
+.copy-popup {
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #e8f5e9;
+    color: #1b5e20;
+    font-size: 0.92rem;
+    font-weight: 600;
+    line-height: 1.35;
+    box-shadow: 0 4px 14px rgba(27, 94, 32, 0.12);
+}
+
+.copy-popup[hidden] {
+    display: none;
 }
 
 @media (max-width: 600px) {
@@ -70,7 +98,16 @@ body {
         padding: 16px;
     }
 
+    .copy-row {
+        align-items: stretch;
+        gap: 10px;
+    }
+
     .copy-btn {
+        width: 100%;
+    }
+
+    .copy-popup {
         width: 100%;
     }
 }

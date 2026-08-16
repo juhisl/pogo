@@ -7,15 +7,23 @@ import { pathToFileURL } from 'node:url'
 
 const missingJsPath = new URL('./missing.js', import.meta.url)
 const missingHtmlPath = new URL('./missing.html', import.meta.url)
+const styleCssPath = new URL('./style.css', import.meta.url)
 
 async function loadMissingModule() {
   const source = await fs.readFile(missingJsPath, 'utf8')
   const clickHandlers = new Map()
+  const timeoutCallbacks = new Map()
+  let nextTimeoutId = 1
+  const clearedTimeouts = []
   const elements = new Map([
     ['copyShiny', createButton('copyShiny', clickHandlers)],
     ['copyLucky', createButton('copyLucky', clickHandlers)],
     ['copyXxl', createButton('copyXxl', clickHandlers)],
     ['copyXxs', createButton('copyXxs', clickHandlers)],
+    ['copyShinyPopup', createPopup()],
+    ['copyLuckyPopup', createPopup()],
+    ['copyXxlPopup', createPopup()],
+    ['copyXxsPopup', createPopup()],
     ['shiny', { innerHTML: '', innerText: 'Shiny text' }],
     ['lucky', { innerHTML: '', innerText: 'Lucky text' }],
     ['xxl', { innerHTML: '', innerText: 'XXL text' }],
@@ -59,15 +67,39 @@ async function loadMissingModule() {
       },
     }),
   })
+  Object.defineProperty(globalThis, 'setTimeout', {
+    configurable: true,
+    value: (callback) => {
+      const timeoutId = nextTimeoutId++
+      timeoutCallbacks.set(timeoutId, callback)
+      return timeoutId
+    },
+  })
+  Object.defineProperty(globalThis, 'clearTimeout', {
+    configurable: true,
+    value: (timeoutId) => {
+      clearedTimeouts.push(timeoutId)
+      timeoutCallbacks.delete(timeoutId)
+    },
+  })
 
   await fs.writeFile(modulePath, source)
   const module = await import(`${pathToFileURL(modulePath).href}?t=${Date.now()}`)
 
   return {
+    clearedTimeouts,
     clipboardWrites,
     clickHandlers,
     elements,
     namespace: module,
+    runTimeout(timeoutId) {
+      const callback = timeoutCallbacks.get(timeoutId)
+      if (callback) {
+        timeoutCallbacks.delete(timeoutId)
+        callback()
+      }
+    },
+    timeoutCallbacks,
   }
 }
 
@@ -77,6 +109,13 @@ function createButton(id, clickHandlers) {
     addEventListener(eventName, handler) {
       clickHandlers.set(`${id}:${eventName}`, handler)
     },
+  }
+}
+
+function createPopup() {
+  return {
+    hidden: true,
+    textContent: '',
   }
 }
 
@@ -111,31 +150,55 @@ test('buildSheetUrl composes sheet URLs from shared base and query params', asyn
   )
 })
 
-test('missing.html includes the Missing XXL and Missing XXS cards', async () => {
+test('missing.html includes popup elements for every copy button', async () => {
   const html = await fs.readFile(missingHtmlPath, 'utf8')
 
-  assert.match(html, /<h3>Missing XXL<\/h3>/)
-  assert.match(html, /id="xxl"/)
-  assert.match(html, /id="copyXxl"/)
-  assert.match(html, /<h3>Missing XXS<\/h3>/)
-  assert.match(html, /id="xxs"/)
-  assert.match(html, /id="copyXxs"/)
+  assert.match(html, /id="copyShinyPopup"/)
+  assert.match(html, /id="copyLuckyPopup"/)
+  assert.match(html, /id="copyXxlPopup"/)
+  assert.match(html, /id="copyXxsPopup"/)
+  assert.match(html, /Search string copied to the clipboard/)
 })
 
-test('initMissingPage populates the page and wires copy buttons', async () => {
-  const { namespace, clickHandlers, clipboardWrites, elements } = await loadMissingModule()
+test('style.css includes larger mobile-friendly copy buttons and popup styling', async () => {
+  const css = await fs.readFile(styleCssPath, 'utf8')
+
+  assert.match(css, /\.copy-btn\s*\{[\s\S]*min-height:/)
+  assert.match(css, /\.copy-btn\s*\{[\s\S]*box-shadow:/)
+  assert.match(css, /\.copy-btn:active\s*\{[\s\S]*transform:/)
+  assert.match(css, /\.copy-popup\s*\{/)
+  assert.match(css, /\.copy-row\s*\{/)
+})
+
+test('initMissingPage populates the page and copy popups survive rapid repeated clicks', async () => {
+  const { namespace, clickHandlers, clipboardWrites, elements, timeoutCallbacks, clearedTimeouts, runTimeout } = await loadMissingModule()
 
   await namespace.initMissingPage()
 
-  clickHandlers.get('copyShiny:click')()
-  clickHandlers.get('copyLucky:click')()
-  clickHandlers.get('copyXxl:click')()
-  clickHandlers.get('copyXxs:click')()
+  await clickHandlers.get('copyShiny:click')()
+  await clickHandlers.get('copyLucky:click')()
+  await clickHandlers.get('copyXxl:click')()
+  await clickHandlers.get('copyXxs:click')()
+  await clickHandlers.get('copyShiny:click')()
+  await clickHandlers.get('copyShiny:click')()
 
   assert.equal(elements.get('shiny').innerHTML, 'Bulbasaur&shiny&!traded')
   assert.equal(elements.get('lucky').innerHTML, 'Pikachu&!traded')
   assert.equal(elements.get('xxl').innerHTML, 'Snorlax&xxl&!traded')
   assert.equal(elements.get('xxs').innerHTML, 'Joltik&xxs&!traded')
   assert.equal(elements.get('updated').innerHTML, 'Last updated: 2026-08-16')
-  assert.deepEqual(clipboardWrites, ['Shiny text', 'Lucky text', 'XXL text', 'XXS text'])
+  assert.deepEqual(clipboardWrites, ['Shiny text', 'Lucky text', 'XXL text', 'XXS text', 'Shiny text', 'Shiny text'])
+
+  const shinyPopup = elements.get('copyShinyPopup')
+  const luckyPopup = elements.get('copyLuckyPopup')
+  assert.equal(shinyPopup.textContent, 'Search string copied to the clipboard')
+  assert.equal(shinyPopup.hidden, false)
+  assert.equal(luckyPopup.hidden, false)
+  assert.equal(timeoutCallbacks.size, 4)
+  assert.deepEqual(clearedTimeouts, [1, 5])
+
+  runTimeout(6)
+
+  assert.equal(shinyPopup.hidden, true)
+  assert.equal(luckyPopup.hidden, false)
 })
