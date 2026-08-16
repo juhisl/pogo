@@ -15,15 +15,18 @@ async function loadMissingModule() {
     ['copyShiny', createButton('copyShiny', clickHandlers)],
     ['copyLucky', createButton('copyLucky', clickHandlers)],
     ['copyXxl', createButton('copyXxl', clickHandlers)],
+    ['copyXxs', createButton('copyXxs', clickHandlers)],
     ['shiny', { innerHTML: '', innerText: 'Shiny text' }],
     ['lucky', { innerHTML: '', innerText: 'Lucky text' }],
     ['xxl', { innerHTML: '', innerText: 'XXL text' }],
+    ['xxs', { innerHTML: '', innerText: 'XXS text' }],
     ['updated', { innerHTML: '' }],
   ])
   const fetchQueue = [
     '"Bulbasaur"',
     '"Pikachu"',
     '"Snorlax"',
+    '"Joltik"',
     '"2026-08-16"',
   ]
   const clipboardWrites = []
@@ -102,14 +105,21 @@ test('buildSheetUrl composes sheet URLs from shared base and query params', asyn
     namespace.buildSheetUrl('Missing%20XXL', 'F1'),
     'https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Missing%20XXL&range=F1',
   )
+  assert.equal(
+    namespace.buildSheetUrl('Missing%20XXS', 'F1'),
+    'https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Missing%20XXS&range=F1',
+  )
 })
 
-test('missing.html includes the Missing XXL card and copy button', async () => {
+test('missing.html includes the Missing XXL and Missing XXS cards', async () => {
   const html = await fs.readFile(missingHtmlPath, 'utf8')
 
   assert.match(html, /<h3>Missing XXL<\/h3>/)
   assert.match(html, /id="xxl"/)
   assert.match(html, /id="copyXxl"/)
+  assert.match(html, /<h3>Missing XXS<\/h3>/)
+  assert.match(html, /id="xxs"/)
+  assert.match(html, /id="copyXxs"/)
 })
 
 test('initMissingPage populates the page and wires copy buttons', async () => {
@@ -120,10 +130,12 @@ test('initMissingPage populates the page and wires copy buttons', async () => {
   clickHandlers.get('copyShiny:click')()
   clickHandlers.get('copyLucky:click')()
   clickHandlers.get('copyXxl:click')()
+  clickHandlers.get('copyXxs:click')()
 
   assert.equal(elements.get('shiny').innerHTML, 'Bulbasaur&shiny&!traded')
   assert.equal(elements.get('lucky').innerHTML, 'Pikachu&!traded')
   assert.equal(elements.get('xxl').innerHTML, 'Snorlax&xxl&!traded')
+  assert.equal(elements.get('xxs').innerHTML, 'Joltik&xxs&!traded')
   assert.equal(elements.get('updated').innerHTML, 'Last updated: 2026-08-16')
-  assert.deepEqual(clipboardWrites, ['Shiny text', 'Lucky text', 'XXL text'])
+  assert.deepEqual(clipboardWrites, ['Shiny text', 'Lucky text', 'XXL text', 'XXS text'])
 })
