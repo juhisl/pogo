@@ -170,6 +170,14 @@ test('style.css includes larger mobile-friendly copy buttons and popup styling',
   assert.match(css, /\.copy-row\s*\{/)
 })
 
+test('style.css increases heading, copy button, and popup font sizes for mobile readability', async () => {
+  const css = await fs.readFile(styleCssPath, 'utf8')
+
+  assert.match(css, /\.card h3\s*\{[\s\S]*font-size:\s*1\.4rem;/)
+  assert.match(css, /\.copy-btn\s*\{[\s\S]*font-size:\s*1\.12rem;/)
+  assert.match(css, /\.copy-popup\s*\{[\s\S]*font-size:\s*1rem;/)
+})
+
 test('initMissingPage populates the page and copy popups survive rapid repeated clicks', async () => {
   const { namespace, clickHandlers, clipboardWrites, elements, timeoutCallbacks, clearedTimeouts, runTimeout } = await loadMissingModule()
 
