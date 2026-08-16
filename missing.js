@@ -1,18 +1,50 @@
-try {
-  document.getElementById("copyShiny").addEventListener("click", () => navigator.clipboard.writeText(document.getElementById("shiny").innerText))
-  document.getElementById("copyLucky").addEventListener("click", () => navigator.clipboard.writeText(document.getElementById("lucky").innerText))
-
-  const shinyResp = await fetch('https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Missing%20Shiny&range=F1')
-  const shiny = await shinyResp.text()
-  document.getElementById("shiny").innerHTML = `${shiny.replace(/(^"|"$)/g, '')}&shiny&!traded`
-
-  const luckyResp = await fetch('https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Missing%20Lucky&range=F1')
-  const lucky = await luckyResp.text()
-  document.getElementById("lucky").innerHTML = `${lucky.replace(/(^"|"$)/g, '')}&!traded`
-
-  const updatedResp = await fetch('https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Pokedex&range=AR1')
-  const updated = await updatedResp.text()
-  document.getElementById("updated").innerHTML = `Last updated: ${updated.replace(/(^"|"$)/g, '')}`
-} catch (e) {
-  document.getElementById("updated").innerHTML = "Error: " + e
+const sheetUrls = {
+  shiny: 'https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Missing%20Shiny&range=F1',
+  lucky: 'https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Missing%20Lucky&range=F1',
+  updated: 'https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Pokedex&range=AR1',
 }
+
+let initPromise
+
+export function stripCsvQuotes(value) {
+  return value.replace(/(^"|"$)/g, '')
+}
+
+export async function fetchSheetValue(url, fetchImpl = fetch) {
+  const response = await fetchImpl(url)
+  return stripCsvQuotes(await response.text())
+}
+
+export function bindCopyButton(buttonId, contentId, doc = document, clipboard = navigator.clipboard) {
+  doc.getElementById(buttonId).addEventListener("click", () => clipboard.writeText(doc.getElementById(contentId).innerText))
+}
+
+async function populateContent(elementId, url, suffix = '', doc = document, fetchImpl = fetch) {
+  const value = await fetchSheetValue(url, fetchImpl)
+  doc.getElementById(elementId).innerHTML = `${value}${suffix}`
+}
+
+export function initMissingPage({ doc = document, fetchImpl = fetch, clipboard = navigator.clipboard } = {}) {
+  if (initPromise) {
+    return initPromise
+  }
+
+  initPromise = (async () => {
+    try {
+      bindCopyButton("copyShiny", "shiny", doc, clipboard)
+      bindCopyButton("copyLucky", "lucky", doc, clipboard)
+
+      await populateContent("shiny", sheetUrls.shiny, "&shiny&!traded", doc, fetchImpl)
+      await populateContent("lucky", sheetUrls.lucky, "&!traded", doc, fetchImpl)
+
+      const updated = await fetchSheetValue(sheetUrls.updated, fetchImpl)
+      doc.getElementById("updated").innerHTML = `Last updated: ${updated}`
+    } catch (e) {
+      doc.getElementById("updated").innerHTML = "Error: " + e
+    }
+  })()
+
+  return initPromise
+}
+
+await initMissingPage()
