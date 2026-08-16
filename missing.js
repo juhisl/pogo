@@ -7,6 +7,7 @@ export function buildSheetUrl(sheetName, range) {
 const sheetUrls = {
   shiny: buildSheetUrl('Missing%20Shiny', 'F1'),
   lucky: buildSheetUrl('Missing%20Lucky', 'F1'),
+  xxl: buildSheetUrl('Missing%20XXL', 'F1'),
   updated: buildSheetUrl('Pokedex', 'AR1'),
 }
 
@@ -39,9 +40,11 @@ export function initMissingPage({ doc = document, fetchImpl = fetch, clipboard =
     try {
       bindCopyButton("copyShiny", "shiny", doc, clipboard)
       bindCopyButton("copyLucky", "lucky", doc, clipboard)
+      bindCopyButton("copyXxl", "xxl", doc, clipboard)
 
       await populateContent("shiny", sheetUrls.shiny, "&shiny&!traded", doc, fetchImpl)
       await populateContent("lucky", sheetUrls.lucky, "&!traded", doc, fetchImpl)
+      await populateContent("xxl", sheetUrls.xxl, "&xxl&!traded", doc, fetchImpl)
 
       const updated = await fetchSheetValue(sheetUrls.updated, fetchImpl)
       doc.getElementById("updated").innerHTML = `Last updated: ${updated}`
