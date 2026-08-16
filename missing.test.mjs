@@ -78,8 +78,22 @@ test('missing.js exports helper functions for deduplicated page setup', async ()
 
   assert.equal(typeof namespace.initMissingPage, 'function')
   assert.equal(typeof namespace.bindCopyButton, 'function')
+  assert.equal(typeof namespace.buildSheetUrl, 'function')
   assert.equal(typeof namespace.fetchSheetValue, 'function')
   assert.equal(typeof namespace.stripCsvQuotes, 'function')
+})
+
+test('buildSheetUrl composes sheet URLs from shared base and query params', async () => {
+  const { namespace } = await loadMissingModule()
+
+  assert.equal(
+    namespace.buildSheetUrl('Missing%20Shiny', 'F1'),
+    'https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Missing%20Shiny&range=F1',
+  )
+  assert.equal(
+    namespace.buildSheetUrl('Pokedex', 'AR1'),
+    'https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Pokedex&range=AR1',
+  )
 })
 
 test('initMissingPage populates the page and wires copy buttons', async () => {

@@ -1,7 +1,13 @@
+const sheetBaseUrl = 'https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv'
+
+export function buildSheetUrl(sheetName, range) {
+  return `${sheetBaseUrl}&sheet=${sheetName}&range=${range}`
+}
+
 const sheetUrls = {
-  shiny: 'https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Missing%20Shiny&range=F1',
-  lucky: 'https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Missing%20Lucky&range=F1',
-  updated: 'https://docs.google.com/spreadsheets/d/1GBORc_fa3vH1Jj0h-a_5tmmuYvYRwmYIAHC-Tcr6VG8/gviz/tq?tqx=out:csv&sheet=Pokedex&range=AR1',
+  shiny: buildSheetUrl('Missing%20Shiny', 'F1'),
+  lucky: buildSheetUrl('Missing%20Lucky', 'F1'),
+  updated: buildSheetUrl('Pokedex', 'AR1'),
 }
 
 let initPromise
