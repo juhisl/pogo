@@ -11,7 +11,11 @@
     <link rel="manifest" href="site.webmanifest">
   </head>
   <body>
+    <div id="pullIndicator" class="pull-indicator" hidden aria-live="polite">Pull to refresh</div>
     <div class="container">
+        <div class="page-toolbar">
+            <button id="refreshButton" class="refresh-btn" type="button">Refresh</button>
+        </div>
         <div id="updated" class="updated"></div>
 
         <div class="card">

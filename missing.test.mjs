@@ -12,14 +12,18 @@ const styleCssPath = new URL('./style.css', import.meta.url)
 async function loadMissingModule() {
   const source = await fs.readFile(missingJsPath, 'utf8')
   const clickHandlers = new Map()
+  const documentHandlers = new Map()
   const timeoutCallbacks = new Map()
   let nextTimeoutId = 1
   const clearedTimeouts = []
+  const fetchCalls = []
   const elements = new Map([
+    ['refreshButton', createButton('refreshButton', clickHandlers, 'Refresh')],
     ['copyShiny', createButton('copyShiny', clickHandlers)],
     ['copyLucky', createButton('copyLucky', clickHandlers)],
     ['copyXxl', createButton('copyXxl', clickHandlers)],
     ['copyXxs', createButton('copyXxs', clickHandlers)],
+    ['pullIndicator', createIndicator()],
     ['copyShinyPopup', createPopup()],
     ['copyLuckyPopup', createPopup()],
     ['copyXxlPopup', createPopup()],
@@ -36,6 +40,11 @@ async function loadMissingModule() {
     '"Snorlax"',
     '"Joltik"',
     '"2026-08-16"',
+    '"Ivysaur"',
+    '"Raichu"',
+    '"Wailord"',
+    '"Pichu"',
+    '"2026-08-17"',
   ]
   const clipboardWrites = []
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pogo-missing-test-'))
@@ -44,6 +53,15 @@ async function loadMissingModule() {
   Object.defineProperty(globalThis, 'document', {
     configurable: true,
     value: {
+      documentElement: {
+        scrollTop: 0,
+      },
+      body: {
+        scrollTop: 0,
+      },
+      addEventListener(eventName, handler) {
+        documentHandlers.set(eventName, handler)
+      },
       getElementById(id) {
         return elements.get(id)
       },
@@ -61,11 +79,20 @@ async function loadMissingModule() {
   })
   Object.defineProperty(globalThis, 'fetch', {
     configurable: true,
-    value: async () => ({
-      async text() {
-        return fetchQueue.shift()
-      },
-    }),
+    value: async (url) => {
+      fetchCalls.push(url)
+      return {
+        async text() {
+          return fetchQueue.shift()
+        },
+      }
+    },
+  })
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: {
+      scrollY: 0,
+    },
   })
   Object.defineProperty(globalThis, 'setTimeout', {
     configurable: true,
@@ -90,7 +117,9 @@ async function loadMissingModule() {
     clearedTimeouts,
     clipboardWrites,
     clickHandlers,
+    documentHandlers,
     elements,
+    fetchCalls,
     namespace: module,
     runTimeout(timeoutId) {
       const callback = timeoutCallbacks.get(timeoutId)
@@ -106,8 +135,24 @@ async function loadMissingModule() {
 function createButton(id, clickHandlers) {
   return {
     id,
+    disabled: false,
+    textContent: 'Copy',
     addEventListener(eventName, handler) {
       clickHandlers.set(`${id}:${eventName}`, handler)
+    },
+  }
+}
+
+function createIndicator() {
+  return {
+    hidden: true,
+    textContent: '',
+    dataset: {},
+    style: {
+      props: {},
+      setProperty(name, value) {
+        this.props[name] = value
+      },
     },
   }
 }
@@ -153,6 +198,8 @@ test('buildSheetUrl composes sheet URLs from shared base and query params', asyn
 test('missing.html includes popup elements for every copy button', async () => {
   const html = await fs.readFile(missingHtmlPath, 'utf8')
 
+  assert.match(html, /id="refreshButton"/)
+  assert.match(html, /id="pullIndicator"/)
   assert.match(html, /id="copyShinyPopup"/)
   assert.match(html, /id="copyLuckyPopup"/)
   assert.match(html, /id="copyXxlPopup"/)
@@ -168,6 +215,8 @@ test('style.css includes larger mobile-friendly copy buttons and popup styling',
   assert.match(css, /\.copy-btn:active\s*\{[\s\S]*transform:/)
   assert.match(css, /\.copy-popup\s*\{/)
   assert.match(css, /\.copy-row\s*\{/)
+  assert.match(css, /\.refresh-btn\s*\{/)
+  assert.match(css, /\.pull-indicator\s*\{/)
 })
 
 test('style.css increases heading, copy button, and popup font sizes for mobile readability', async () => {
@@ -178,10 +227,64 @@ test('style.css increases heading, copy button, and popup font sizes for mobile 
   assert.match(css, /\.copy-popup\s*\{[\s\S]*font-size:\s*1rem;/)
 })
 
-test('initMissingPage populates the page and copy popups survive rapid repeated clicks', async () => {
-  const { namespace, clickHandlers, clipboardWrites, elements, timeoutCallbacks, clearedTimeouts, runTimeout } = await loadMissingModule()
+test('refresh button triggers a full content refresh', async () => {
+  const { clickHandlers, elements, fetchCalls } = await loadMissingModule()
 
-  await namespace.initMissingPage()
+  await clickHandlers.get('refreshButton:click')()
+
+  assert.equal(elements.get('shiny').innerHTML, 'Ivysaur&shiny&!traded')
+  assert.equal(elements.get('lucky').innerHTML, 'Raichu&!traded')
+  assert.equal(elements.get('xxl').innerHTML, 'Wailord&xxl&!traded')
+  assert.equal(elements.get('xxs').innerHTML, 'Pichu&xxs&!traded')
+  assert.equal(elements.get('updated').innerHTML, 'Last updated: 2026-08-17')
+  assert.equal(fetchCalls.length, 10)
+  assert.equal(elements.get('refreshButton').disabled, false)
+  assert.equal(elements.get('refreshButton').textContent, 'Refresh')
+})
+
+test('pull-to-refresh triggers only after threshold when scrolled to the top', async () => {
+  const { documentHandlers, elements, fetchCalls } = await loadMissingModule()
+
+  documentHandlers.get('touchstart')({
+    touches: [{ clientY: 0 }],
+  })
+  documentHandlers.get('touchmove')({
+    touches: [{ clientY: 80 }],
+    cancelable: true,
+    preventDefault() {
+      this.prevented = true
+    },
+  })
+  documentHandlers.get('touchend')({})
+
+  assert.equal(fetchCalls.length, 5)
+  assert.equal(elements.get('pullIndicator').hidden, true)
+
+  documentHandlers.get('touchstart')({
+    touches: [{ clientY: 0 }],
+  })
+  const pullMoveEvent = {
+    touches: [{ clientY: 180 }],
+    cancelable: true,
+    prevented: false,
+    preventDefault() {
+      this.prevented = true
+    },
+  }
+  documentHandlers.get('touchmove')(pullMoveEvent)
+
+  assert.equal(pullMoveEvent.prevented, true)
+  assert.equal(elements.get('pullIndicator').dataset.state, 'ready')
+
+  await documentHandlers.get('touchend')({})
+
+  assert.equal(fetchCalls.length, 10)
+  assert.equal(elements.get('updated').innerHTML, 'Last updated: 2026-08-17')
+  assert.equal(elements.get('pullIndicator').hidden, true)
+})
+
+test('initMissingPage populates the page and copy popups survive rapid repeated clicks', async () => {
+  const { clickHandlers, clipboardWrites, elements, timeoutCallbacks, clearedTimeouts, runTimeout, fetchCalls } = await loadMissingModule()
 
   await clickHandlers.get('copyShiny:click')()
   await clickHandlers.get('copyLucky:click')()
@@ -195,6 +298,7 @@ test('initMissingPage populates the page and copy popups survive rapid repeated 
   assert.equal(elements.get('xxl').innerHTML, 'Snorlax&xxl&!traded')
   assert.equal(elements.get('xxs').innerHTML, 'Joltik&xxs&!traded')
   assert.equal(elements.get('updated').innerHTML, 'Last updated: 2026-08-16')
+  assert.equal(fetchCalls.length, 5)
   assert.deepEqual(clipboardWrites, ['Shiny text', 'Lucky text', 'XXL text', 'XXS text', 'Shiny text', 'Shiny text'])
 
   const shinyPopup = elements.get('copyShinyPopup')
