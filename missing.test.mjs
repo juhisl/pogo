@@ -9,7 +9,7 @@ const missingJsPath = new URL('./missing.js', import.meta.url)
 const missingHtmlPath = new URL('./missing.html', import.meta.url)
 const styleCssPath = new URL('./style.css', import.meta.url)
 
-async function loadMissingModule() {
+async function loadMissingModule({ fetchQueue: initialFetchQueue } = {}) {
   const source = await fs.readFile(missingJsPath, 'utf8')
   const clickHandlers = new Map()
   const documentHandlers = new Map()
@@ -35,16 +35,20 @@ async function loadMissingModule() {
     ['updated', { innerHTML: '' }],
   ])
   const fetchQueue = [
-    '"Bulbasaur"',
-    '"Pikachu"',
-    '"Snorlax"',
-    '"Joltik"',
-    '"2026-08-16"',
-    '"Ivysaur"',
-    '"Raichu"',
-    '"Wailord"',
-    '"Pichu"',
-    '"2026-08-17"',
+    ...(initialFetchQueue ?? [
+      '"Bulbasaur"',
+      '"Pikachu"',
+      '"Snorlax"',
+      '"Joltik"',
+      '"2026-08-16"',
+      '"2026-08-16"',
+      '"2026-08-17"',
+      '"Ivysaur"',
+      '"Raichu"',
+      '"Wailord"',
+      '"Pichu"',
+      '"2026-08-17"',
+    ]),
   ]
   const clipboardWrites = []
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'pogo-missing-test-'))
@@ -228,7 +232,20 @@ test('style.css increases heading, copy button, and popup font sizes for mobile 
 })
 
 test('refresh button triggers a full content refresh', async () => {
-  const { clickHandlers, elements, fetchCalls } = await loadMissingModule()
+  const { clickHandlers, elements, fetchCalls } = await loadMissingModule({
+    fetchQueue: [
+      '"Bulbasaur"',
+      '"Pikachu"',
+      '"Snorlax"',
+      '"Joltik"',
+      '"2026-08-16"',
+      '"2026-08-17"',
+      '"Ivysaur"',
+      '"Raichu"',
+      '"Wailord"',
+      '"Pichu"',
+    ],
+  })
 
   await clickHandlers.get('refreshButton:click')()
 
@@ -242,8 +259,43 @@ test('refresh button triggers a full content refresh', async () => {
   assert.equal(elements.get('refreshButton').textContent, 'Refresh')
 })
 
+test('refresh skips content fetches when updated value has not changed', async () => {
+  const { clickHandlers, elements, fetchCalls } = await loadMissingModule({
+    fetchQueue: [
+      '"Bulbasaur"',
+      '"Pikachu"',
+      '"Snorlax"',
+      '"Joltik"',
+      '"2026-08-16"',
+      '"2026-08-16"',
+    ],
+  })
+
+  await clickHandlers.get('refreshButton:click')()
+
+  assert.equal(elements.get('shiny').innerHTML, 'Bulbasaur&shiny&!traded')
+  assert.equal(elements.get('lucky').innerHTML, 'Pikachu&!traded')
+  assert.equal(elements.get('xxl').innerHTML, 'Snorlax&xxl&!traded')
+  assert.equal(elements.get('xxs').innerHTML, 'Joltik&xxs&!traded')
+  assert.equal(elements.get('updated').innerHTML, 'Last updated: 2026-08-16')
+  assert.equal(fetchCalls.length, 6)
+})
+
 test('pull-to-refresh triggers only after threshold when scrolled to the top', async () => {
-  const { documentHandlers, elements, fetchCalls } = await loadMissingModule()
+  const { documentHandlers, elements, fetchCalls } = await loadMissingModule({
+    fetchQueue: [
+      '"Bulbasaur"',
+      '"Pikachu"',
+      '"Snorlax"',
+      '"Joltik"',
+      '"2026-08-16"',
+      '"2026-08-17"',
+      '"Ivysaur"',
+      '"Raichu"',
+      '"Wailord"',
+      '"Pichu"',
+    ],
+  })
 
   documentHandlers.get('touchstart')({
     touches: [{ clientY: 0 }],

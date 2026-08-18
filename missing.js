@@ -23,6 +23,7 @@ const sheetUrls = {
 let initPromise
 let refreshPromise
 let interactionsBound = false
+let lastUpdatedValue
 
 export function stripCsvQuotes(value) {
   return value.replace(/(^"|"$)/g, '')
@@ -75,6 +76,34 @@ async function fetchMissingContent(fetchImpl = fetch) {
   return { shiny, lucky, xxl, xxs, updated }
 }
 
+async function fetchMissingLists(fetchImpl = fetch) {
+  const [shiny, lucky, xxl, xxs] = await Promise.all([
+    fetchSheetValue(sheetUrls.shiny, fetchImpl),
+    fetchSheetValue(sheetUrls.lucky, fetchImpl),
+    fetchSheetValue(sheetUrls.xxl, fetchImpl),
+    fetchSheetValue(sheetUrls.xxs, fetchImpl),
+  ])
+
+  return { shiny, lucky, xxl, xxs }
+}
+
+async function fetchLatestMissingContent(fetchImpl = fetch) {
+  if (!lastUpdatedValue) {
+    return fetchMissingContent(fetchImpl)
+  }
+
+  const updated = await fetchSheetValue(sheetUrls.updated, fetchImpl)
+
+  if (updated === lastUpdatedValue) {
+    return null
+  }
+
+  return {
+    ...(await fetchMissingLists(fetchImpl)),
+    updated,
+  }
+}
+
 export function setRefreshButtonState(isRefreshing, doc = document) {
   const refreshButton = doc.getElementById("refreshButton")
 
@@ -109,12 +138,18 @@ export function refreshMissingPage({ doc = document, fetchImpl = fetch } = {}) {
 
   refreshPromise = (async () => {
     try {
-      const content = await fetchMissingContent(fetchImpl)
+      const content = await fetchLatestMissingContent(fetchImpl)
+
+      if (!content) {
+        return
+      }
+
       renderContent("shiny", content.shiny, "&shiny&!traded", doc)
       renderContent("lucky", content.lucky, "&!traded", doc)
       renderContent("xxl", content.xxl, "&xxl&!traded", doc)
       renderContent("xxs", content.xxs, "&xxs&!traded", doc)
       doc.getElementById("updated").innerHTML = `Last updated: ${content.updated}`
+      lastUpdatedValue = content.updated
     } catch (e) {
       doc.getElementById("updated").innerHTML = "Error: " + e
     } finally {
